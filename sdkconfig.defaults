@@ -1,0 +1,7 @@
+# Project-wide defaults. Regenerate sdkconfig with `idf.py reconfigure`
+# (or delete sdkconfig and rebuild) to pick up changes here.
+
+# Disable C++ exceptions and RTTI — keeps binary size down and avoids
+# pulling libsupc++ exception machinery.
+CONFIG_COMPILER_CXX_EXCEPTIONS=n
+CONFIG_COMPILER_CXX_RTTI=n

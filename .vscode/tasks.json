@@ -1,0 +1,131 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "shell": {
+      "executable": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"]
+    },
+    "env": {
+      "IDF_PYENV": "C:\\Users\\pitch\\.espressif\\python_env\\idf6.0_py3.11_env\\Scripts\\Activate.ps1",
+      "IDF_EXPORT": "${config:idf.currentSetup}\\export.ps1"
+    }
+  },
+  "tasks": [
+    {
+      "label": "Init IDF env",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; if ($?) { Write-Host 'IDF env ready' } else { exit 1 }",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py build",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Clean",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py clean",
+      "problemMatcher": []
+    },
+    {
+      "label": "Full Clean",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py fullclean",
+      "problemMatcher": []
+    },
+    {
+      "label": "Menuconfig",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py menuconfig",
+      "problemMatcher": []
+    },
+    {
+      "label": "Set Target",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py set-target ${input:target}",
+      "problemMatcher": []
+    },
+    {
+      "label": "Flash",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py -p ${input:port} flash",
+      "problemMatcher": []
+    },
+    {
+      "label": "Erase Flash",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py -p ${input:port} erase-flash",
+      "problemMatcher": []
+    },
+    {
+      "label": "Monitor",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py -p ${input:port} monitor",
+      "problemMatcher": []
+    },
+    {
+      "label": "Flash + Monitor",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py -p ${input:port} flash monitor",
+      "problemMatcher": []
+    },
+    {
+      "label": "OpenOCD",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py openocd",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": [
+          { "regexp": ".", "file": 1, "location": 2, "message": 3 }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Open On-Chip Debugger",
+          "endsPattern": "Listening on port \\d+ for gdb connections"
+        }
+      }
+    },
+    {
+      "label": "GDB",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py gdb",
+      "problemMatcher": []
+    },
+    {
+      "label": "Debug (OpenOCD + gdbgui)",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py openocd gdbgui",
+      "problemMatcher": []
+    },
+    {
+      "label": "Size",
+      "type": "shell",
+      "command": "& $env:IDF_PYENV *> $null; & $env:IDF_EXPORT *> $null; idf.py size",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build + Flash + Monitor",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Build", "Flash", "Monitor"],
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "port",
+      "type": "promptString",
+      "description": "Serial port (e.g. COM3 or /dev/ttyUSB0)",
+      "default": "COM3"
+    },
+    {
+      "id": "target",
+      "type": "pickString",
+      "description": "ESP chip target",
+      "options": ["esp32", "esp32s2", "esp32s3", "esp32c2", "esp32c3", "esp32c5", "esp32c6", "esp32c61", "esp32h2", "esp32p4"],
+      "default": "esp32"
+    }
+  ]
+}
