@@ -5,3 +5,11 @@
 # pulling libsupc++ exception machinery.
 CONFIG_COMPILER_CXX_EXCEPTIONS=n
 CONFIG_COMPILER_CXX_RTTI=n
+
+# Custom partition table (1.75 MB factory app, fits in 2 MB configured flash)
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="flash_partitions.csv"
+
+# Bluetooth LE via NimBLE (BLE-only host stack, used by ble_scanner.cpp)
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y

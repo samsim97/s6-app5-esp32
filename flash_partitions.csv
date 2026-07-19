@@ -1,0 +1,5 @@
+# ESP32 — fits within 2 MB configured flash (binary is ~1.08 MB, partition is 1.75 MB)
+# Name,   Type, SubType, Offset,   Size
+nvs,      data, nvs,     0x9000,   0x6000
+phy_init, data, phy,     0xf000,   0x1000
+factory,  app,  factory, 0x10000,  0x1C0000

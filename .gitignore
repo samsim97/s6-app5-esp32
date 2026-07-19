@@ -3,6 +3,18 @@
 .AppleDouble
 .LSOverride
 
+# Archive files
+archive/node_modules/
+
+# Control files
+control/node_modules/
+
+# Relay files
+relay/node_modules/
+
+# Server files
+server/node_modules/
+
 # Directory metadata
 .directory
 

@@ -15,7 +15,8 @@ static EventGroupHandle_t g_events;
 static void event_handler(void *, esp_event_base_t base, int32_t id, void *data)
 {
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
-        ESP_LOGW(TAG, "Disconnected — retrying");
+        auto *evt = (wifi_event_sta_disconnected_t *)data;
+        ESP_LOGW(TAG, "Disconnected (reason=%d) — retrying", evt->reason);
         esp_wifi_connect();
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         auto *evt = (ip_event_got_ip_t *)data;
@@ -41,10 +42,13 @@ void wifi_connect(const char *ssid, const char *password)
     wifi_config_t wifi_cfg = {};
     strncpy((char *)wifi_cfg.sta.ssid,     ssid,     sizeof(wifi_cfg.sta.ssid)     - 1);
     strncpy((char *)wifi_cfg.sta.password, password, sizeof(wifi_cfg.sta.password) - 1);
+    wifi_cfg.sta.pmf_cfg.capable  = true;  // interop with routers running WPA2/WPA3-transition mode
+    wifi_cfg.sta.pmf_cfg.required = false;
 
     esp_wifi_set_mode(WIFI_MODE_STA);
     esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg);
     esp_wifi_start();
+    esp_wifi_set_ps(WIFI_PS_NONE); // avoid modem-sleep beacon misses that cause repeated run→init drops
     esp_wifi_connect();
 
     ESP_LOGI(TAG, "Connecting to \"%s\"...", ssid);

@@ -12,7 +12,7 @@
 #include "services/gap/ble_svc_gap.h"
 
 static constexpr const char *TAG               = "SCANNER";
-static constexpr uint32_t    DEPARTURE_MS      = 5000;
+static constexpr uint32_t    DEPARTURE_MS      = 20000; // must exceed typical adv-packet gaps under WiFi/BT coexistence
 static constexpr size_t      MAX_BEACONS       = 20;
 
 // iBeacon manufacturer-specific data layout (after AD type byte):
@@ -42,7 +42,7 @@ static bool is_ibeacon(const uint8_t *mfg, uint8_t len, BeaconId *out)
     if (mfg[0] != 0x4C || mfg[1] != 0x00) return false; // Apple
     if (mfg[2] != 0x02 || mfg[3] != 0x15) return false; // iBeacon type + length
     memcpy(out->uuid, &mfg[4], 16);
-    out->major = (uint16_t)((mfg[20] << 8) | mfg[21]);
+    out->major = (uint16_t)((mfg[20] << 8) | mfg[21]); // big-endian per iBeacon spec
     out->minor = (uint16_t)((mfg[22] << 8) | mfg[23]);
     return true;
 }
