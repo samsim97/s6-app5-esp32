@@ -61,7 +61,6 @@
     button:hover:not(:disabled) { background: #1565c0; }
     button:disabled { opacity: 0.5; cursor: default; }
 
-    /* Events table */
     .table-header {
       display: flex;
       justify-content: space-between;
@@ -84,7 +83,6 @@
 
   <h1>GeoForce — Station Monitor</h1>
 
-  <!-- LED control -->
   <div class="card">
     <h2>LED Control</h2>
     <div class="led-row">
@@ -93,7 +91,6 @@
     </div>
   </div>
 
-  <!-- Event log -->
   <div class="card">
     <div class="table-header">
       <h2>Event Log</h2>
@@ -119,7 +116,6 @@
 
     let ledState = false;
 
-    // ── LED ──────────────────────────────────────────────────────────────────
     async function refreshLed() {
       try {
         const res  = await fetch(`${CONTROL}/led`);
@@ -157,7 +153,6 @@
       }
     }
 
-    // ── Events ───────────────────────────────────────────────────────────────
     async function refreshEvents() {
       try {
         const res    = await fetch(`${ARCHIVE}/events`);
@@ -189,12 +184,6 @@
       }
     }
 
-    // ── Init ─────────────────────────────────────────────────────────────────
-    // Polling the LED state (not just fetching it once) also keeps the
-    // Control↔ESP32 CoAP path exercised continuously, so it doesn't go idle
-    // long enough for the ESP32 to drop its ARP entry for this machine —
-    // without that, the first request after any quiet period can be lost
-    // while ARP re-resolves.
     refreshLed();
     refreshEvents();
     // setInterval(refreshLed, 5000);

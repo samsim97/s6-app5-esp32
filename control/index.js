@@ -2,20 +2,15 @@ const express = require('express');
 const cors    = require('cors');
 const coap    = require('coap');
 
-const PORT                = process.env.PORT                || 3002;
-const ESP32_HOST           = process.env.ESP32_HOST           || '192.168.1.166';
-const ESP32_COAP_PORT      = process.env.ESP32_COAP_PORT      || 5683;
+const PORT                    = process.env.PORT            || 3002;
+const ESP32_HOST              = process.env.ESP32_HOST      || '192.168.1.166';
+const ESP32_COAP_PORT         = process.env.ESP32_COAP_PORT || 5683;
 const COAP_REQUEST_TIMEOUT_MS = 10000;
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Sends a CoAP request to the ESP32's /led resource and resolves with the
-// response payload as text ("on" or "off"). Always settles within
-// COAP_REQUEST_TIMEOUT_MS, even if the station never answers — a CoAP client
-// otherwise retries a confirmable request for up to ~90s (RFC 7252 default
-// backoff), which would leave the UI's request hanging that whole time.
 function sendLedCoapRequest(method, payloadText) {
     return new Promise((resolve, reject) => {
         let settled = false;

@@ -12,7 +12,7 @@
 #include "services/gap/ble_svc_gap.h"
 
 static constexpr const char *TAG               = "SCANNER";
-static constexpr uint32_t    DEPARTURE_MS      = 20000; // must exceed typical adv-packet gaps under WiFi/BT coexistence
+static constexpr uint32_t    DEPARTURE_MS      = 20000; // must exceed typical adv-packet gaps under WiFi/BT coexistence. Need to check the standard time needed here instead of this magic number
 static constexpr size_t      MAX_BEACONS       = 20;
 
 // iBeacon manufacturer-specific data layout (after AD type byte):
@@ -25,7 +25,7 @@ static constexpr size_t      MAX_BEACONS       = 20;
 //   [24]   : TX Power
 static constexpr size_t IBEACON_MANUFACTURER_DATA_LENGTH = 25;
 
-static BeaconEventCb g_callback = nullptr;
+static BeaconEventCallback g_callback = nullptr;
 
 struct BeaconEntry {
     BeaconId id;
@@ -33,27 +33,27 @@ struct BeaconEntry {
     bool     active;
 };
 
-static BeaconEntry      g_beacons[MAX_BEACONS];
+static BeaconEntry       g_beacons[MAX_BEACONS];
 static SemaphoreHandle_t g_mutex;
 
-static bool is_ibeacon(const uint8_t *manufacturer_data, uint8_t manufacturer_data_length, BeaconId *beacon_id_out)
-{
+static bool is_ibeacon(const uint8_t* manufacturer_data, uint8_t manufacturer_data_length, BeaconId* beacon_id_out) {
     if (manufacturer_data_length < IBEACON_MANUFACTURER_DATA_LENGTH) return false;
     if (manufacturer_data[0] != 0x4C || manufacturer_data[1] != 0x00) return false; // Apple
     if (manufacturer_data[2] != 0x02 || manufacturer_data[3] != 0x15) return false; // iBeacon type + length
+
     memcpy(beacon_id_out->uuid, &manufacturer_data[4], 16);
-    beacon_id_out->major = (uint16_t)((manufacturer_data[20] << 8) | manufacturer_data[21]); // big-endian per iBeacon spec
+
+    beacon_id_out->major = (uint16_t)((manufacturer_data[20] << 8) | manufacturer_data[21]); // big-endian (iBeacon spec)
     beacon_id_out->minor = (uint16_t)((manufacturer_data[22] << 8) | manufacturer_data[23]);
+
     return true;
 }
 
-static bool ids_equal(const BeaconId &a, const BeaconId &b)
-{
+static bool ids_equal(const BeaconId &a, const BeaconId &b) {
     return memcmp(a.uuid, b.uuid, 16) == 0 && a.major == b.major && a.minor == b.minor;
 }
 
-static void on_beacon_seen(const BeaconId &id)
-{
+static void on_beacon_seen(const BeaconId &id) {
     uint64_t now = (uint64_t)(esp_timer_get_time() / 1000);
 
     xSemaphoreTake(g_mutex, portMAX_DELAY);
@@ -79,8 +79,7 @@ static void on_beacon_seen(const BeaconId &id)
     ESP_LOGW(TAG, "Beacon table full — ignoring new beacon");
 }
 
-static void presence_task(void *)
-{
+static void presence_task(void*) {
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(1000));
         uint64_t now = (uint64_t)(esp_timer_get_time() / 1000);
@@ -90,8 +89,13 @@ static void presence_task(void *)
             if (g_beacons[i].active && (now - g_beacons[i].last_seen_ms) > DEPARTURE_MS) {
                 BeaconId gone = g_beacons[i].id;
                 g_beacons[i].active = false;
+
                 xSemaphoreGive(g_mutex);
-                if (g_callback) g_callback(BeaconEvent::DEPARTURE, gone);
+
+                if (g_callback) {
+                    g_callback(BeaconEvent::DEPARTURE, gone);
+                }
+
                 xSemaphoreTake(g_mutex, portMAX_DELAY);
             }
         }
@@ -99,53 +103,51 @@ static void presence_task(void *)
     }
 }
 
-static int on_gap_event(ble_gap_event *event, void *)
-{
+static int on_gap_event(ble_gap_event* event, void*) {
     if (event->type != BLE_GAP_EVENT_DISC) return 0;
 
     ble_hs_adv_fields fields;
-    if (ble_hs_adv_parse_fields(&fields, event->disc.data, event->disc.length_data) != 0)
-        return 0;
+    if (ble_hs_adv_parse_fields(&fields, event->disc.data, event->disc.length_data) != 0) return 0;
 
     if (!fields.mfg_data) return 0;
 
     BeaconId id;
-    if (is_ibeacon(fields.mfg_data, fields.mfg_data_len, &id))
+    if (is_ibeacon(fields.mfg_data, fields.mfg_data_len, &id)) {
         on_beacon_seen(id);
+    }
 
     return 0;
 }
 
-static void start_scan()
-{
+static void start_scan() {
     ble_gap_disc_params discovery_params = {};
-    discovery_params.passive           = 1;      // passive — no scan requests sent
-    discovery_params.itvl              = 0x0080;  // 80ms interval
-    discovery_params.window            = 0x0030;  // 30ms window → ~37% duty cycle, leaves
+    discovery_params.passive             = 1;      // passive — no scan requests sent
+    discovery_params.itvl                = 0x0080; // 80ms interval
+    discovery_params.window              = 0x0030; // 30ms window → ~37% duty cycle, leaves
                                                    // airtime for WiFi (BLE/WiFi share one radio;
                                                    // a 100% duty cycle scan starved WiFi enough
                                                    // to break the HTTP POST to Relay under load)
-    discovery_params.filter_duplicates = 0; // must see repeats to refresh timestamps
+    discovery_params.filter_duplicates   = 0;      // must see repeats to refresh timestamps
+
     ble_gap_disc(BLE_OWN_ADDR_PUBLIC, BLE_HS_FOREVER, &discovery_params, on_gap_event, nullptr);
     ESP_LOGI(TAG, "Passive iBeacon scan started");
 }
 
-static void on_sync()
-{
+static void on_sync() {
     ble_hs_util_ensure_addr(0);
     start_scan();
 }
 
-static void nimble_task(void *)
-{
+static void nimble_task(void*) {
     nimble_port_run();
     nimble_port_freertos_deinit();
 }
 
-void ble_scanner_set_callback(BeaconEventCb callback) { g_callback = callback; }
+void ble_scanner_set_callback(BeaconEventCallback callback) { 
+    g_callback = callback; 
+}
 
-void start_ble_scanner()
-{
+void start_ble_scanner() {
     g_mutex = xSemaphoreCreateMutex();
     memset(g_beacons, 0, sizeof(g_beacons));
 

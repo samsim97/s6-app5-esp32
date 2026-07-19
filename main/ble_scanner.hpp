@@ -9,7 +9,7 @@ struct BeaconId {
 
 enum class BeaconEvent : uint8_t { ARRIVAL, DEPARTURE };
 
-using BeaconEventCb = void (*)(BeaconEvent, const BeaconId &);
+using BeaconEventCallback = void (*)(BeaconEvent, const BeaconId &);
 
-void ble_scanner_set_callback(BeaconEventCb cb);
+void ble_scanner_set_callback(BeaconEventCallback cb);
 void start_ble_scanner();

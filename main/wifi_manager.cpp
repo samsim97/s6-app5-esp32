@@ -7,26 +7,24 @@
 #include "esp_wifi.h"
 #include "esp_event.h"
 
-static constexpr const char *TAG               = "WIFI";
-static constexpr int          CONNECTED_BIT    = BIT0;
+static constexpr const char* TAG           = "WIFI";
+static constexpr int         CONNECTED_BIT = BIT0;
 
 static EventGroupHandle_t g_connection_events;
 
-static void event_handler(void *, esp_event_base_t base, int32_t id, void *data)
-{
+static void event_handler(void*, esp_event_base_t base, int32_t id, void *data) {
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
-        auto *disconnected_event = (wifi_event_sta_disconnected_t *)data;
+        auto* disconnected_event = (wifi_event_sta_disconnected_t*)data;
         ESP_LOGW(TAG, "Disconnected (reason=%d) — retrying", disconnected_event->reason);
         esp_wifi_connect();
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
-        auto *got_ip_event = (ip_event_got_ip_t *)data;
+        auto* got_ip_event = (ip_event_got_ip_t*)data;
         ESP_LOGI(TAG, "IP: " IPSTR, IP2STR(&got_ip_event->ip_info.ip));
         xEventGroupSetBits(g_connection_events, CONNECTED_BIT);
     }
 }
 
-void wifi_connect(const char *ssid, const char *password)
-{
+void wifi_connect(const char* ssid, const char* password) {
     g_connection_events = xEventGroupCreate();
 
     esp_netif_init();

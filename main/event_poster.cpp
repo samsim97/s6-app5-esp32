@@ -8,10 +8,10 @@
 #include "esp_mac.h"
 #include "esp_http_client.h"
 
-static constexpr const char *TAG        = "POSTER";
+static constexpr const char* TAG        = "POSTER";
 static constexpr size_t      QUEUE_SIZE = 10;
 
-static const char    *g_relay_url = nullptr;
+static const char*    g_relay_url = nullptr;
 static char           g_station_id[18]; // "AABBCCDDEEFF"
 static QueueHandle_t  g_queue;
 
@@ -20,18 +20,17 @@ struct QueueItem {
     BeaconId    id;
 };
 
-static void format_uuid(const uint8_t uuid[16], char *out, size_t out_len)
-{
+static void format_uuid(const uint8_t uuid[16], char* out, size_t out_len) {
     snprintf(out, out_len,
         "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
         uuid[0],  uuid[1],  uuid[2],  uuid[3],
         uuid[4],  uuid[5],  uuid[6],  uuid[7],
         uuid[8],  uuid[9],  uuid[10], uuid[11],
-        uuid[12], uuid[13], uuid[14], uuid[15]);
+        uuid[12], uuid[13], uuid[14], uuid[15]
+    );
 }
 
-static void send_event_to_relay(BeaconEvent event, const BeaconId &id)
-{
+static void send_event_to_relay(BeaconEvent event, const BeaconId &id) {
     char uuid_str[37];
     format_uuid(id.uuid, uuid_str, sizeof(uuid_str));
 
@@ -61,8 +60,7 @@ static void send_event_to_relay(BeaconEvent event, const BeaconId &id)
     esp_http_client_cleanup(client);
 }
 
-static void poster_task(void *)
-{
+static void poster_task(void*) {
     QueueItem item;
     while (true) {
         if (xQueueReceive(g_queue, &item, portMAX_DELAY))
@@ -70,8 +68,7 @@ static void poster_task(void *)
     }
 }
 
-void event_poster_init(const char *relay_url)
-{
+void event_poster_init(const char* relay_url) {
     g_relay_url = relay_url;
 
     uint8_t mac[6];
@@ -84,8 +81,7 @@ void event_poster_init(const char *relay_url)
     xTaskCreate(poster_task, "http_poster", 8192, nullptr, 4, nullptr);
 }
 
-void post_beacon_event(BeaconEvent event, const BeaconId &id)
-{
+void post_beacon_event(BeaconEvent event, const BeaconId& id) {
     if (!g_relay_url) return;
     QueueItem item = {event, id};
     if (xQueueSend(g_queue, &item, 0) != pdTRUE)
