@@ -12,7 +12,7 @@ const mqttClient = mqtt.connect(MQTT_URL);
 mqttClient.on('connect', () => console.log(`[RELAY] MQTT connected to ${MQTT_URL}`));
 mqttClient.on('error',   err => console.error('[RELAY] MQTT error:', err.message));
 
-// POST /events — webhook called by Serveur Web when ESP32 sends an event
+// POST /events — called directly by an ESP32 station on arrival/departure
 app.post('/events', (req, res) => {
     const event = req.body;
     if (!event.event || !event.badge_id || !event.station_id)

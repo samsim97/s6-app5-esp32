@@ -1,7 +1,7 @@
 {
   "name": "relay",
   "version": "1.0.0",
-  "description": "Relay: receives events from Serveur Web via webhook, publishes to MQTT",
+  "description": "Relay: receives events directly from ESP32 stations over HTTP, publishes them to MQTT",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"

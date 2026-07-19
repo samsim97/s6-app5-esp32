@@ -125,8 +125,8 @@
         const res  = await fetch(`${CONTROL}/led`);
         const data = await res.json();
         setLedState(data.state);
-      } catch (e) {
-        console.warn('Control unreachable', e);
+      } catch (error) {
+        console.warn('Control unreachable', error);
       }
     }
 
@@ -150,8 +150,8 @@
         });
         const data = await res.json();
         setLedState(data.state);
-      } catch (e) {
-        console.error('LED toggle failed', e);
+      } catch (error) {
+        console.error('LED toggle failed', error);
       } finally {
         btn.disabled = false;
       }
@@ -176,22 +176,28 @@
         table.style.display    = '';
         emptyMsg.style.display = 'none';
 
-        tbody.innerHTML = [...events].reverse().map(e => `
-          <tr class="${e.event}">
-            <td>${new Date(e.timestamp).toLocaleString()}</td>
-            <td class="type">${e.event}</td>
-            <td>${e.badge_id}</td>
-            <td>${e.station_id}</td>
+        tbody.innerHTML = [...events].reverse().map(event => `
+          <tr class="${event.event}">
+            <td>${new Date(event.timestamp).toLocaleString()}</td>
+            <td class="type">${event.event}</td>
+            <td>${event.badge_id}</td>
+            <td>${event.station_id}</td>
           </tr>
         `).join('');
-      } catch (e) {
-        console.warn('Archive unreachable', e);
+      } catch (error) {
+        console.warn('Archive unreachable', error);
       }
     }
 
     // ── Init ─────────────────────────────────────────────────────────────────
+    // Polling the LED state (not just fetching it once) also keeps the
+    // Control↔ESP32 CoAP path exercised continuously, so it doesn't go idle
+    // long enough for the ESP32 to drop its ARP entry for this machine —
+    // without that, the first request after any quiet period can be lost
+    // while ARP re-resolves.
     refreshLed();
     refreshEvents();
+    // setInterval(refreshLed, 5000);
     setInterval(refreshEvents, 5000);
   </script>
 </body>

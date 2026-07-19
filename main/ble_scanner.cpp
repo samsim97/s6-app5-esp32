@@ -23,7 +23,7 @@ static constexpr size_t      MAX_BEACONS       = 20;
 //   [20-21]: Major (big-endian)
 //   [22-23]: Minor (big-endian)
 //   [24]   : TX Power
-static constexpr size_t IBEACON_MFG_LEN = 25;
+static constexpr size_t IBEACON_MANUFACTURER_DATA_LENGTH = 25;
 
 static BeaconEventCb g_callback = nullptr;
 
@@ -36,14 +36,14 @@ struct BeaconEntry {
 static BeaconEntry      g_beacons[MAX_BEACONS];
 static SemaphoreHandle_t g_mutex;
 
-static bool is_ibeacon(const uint8_t *mfg, uint8_t len, BeaconId *out)
+static bool is_ibeacon(const uint8_t *manufacturer_data, uint8_t manufacturer_data_length, BeaconId *beacon_id_out)
 {
-    if (len < IBEACON_MFG_LEN)      return false;
-    if (mfg[0] != 0x4C || mfg[1] != 0x00) return false; // Apple
-    if (mfg[2] != 0x02 || mfg[3] != 0x15) return false; // iBeacon type + length
-    memcpy(out->uuid, &mfg[4], 16);
-    out->major = (uint16_t)((mfg[20] << 8) | mfg[21]); // big-endian per iBeacon spec
-    out->minor = (uint16_t)((mfg[22] << 8) | mfg[23]);
+    if (manufacturer_data_length < IBEACON_MANUFACTURER_DATA_LENGTH) return false;
+    if (manufacturer_data[0] != 0x4C || manufacturer_data[1] != 0x00) return false; // Apple
+    if (manufacturer_data[2] != 0x02 || manufacturer_data[3] != 0x15) return false; // iBeacon type + length
+    memcpy(beacon_id_out->uuid, &manufacturer_data[4], 16);
+    beacon_id_out->major = (uint16_t)((manufacturer_data[20] << 8) | manufacturer_data[21]); // big-endian per iBeacon spec
+    beacon_id_out->minor = (uint16_t)((manufacturer_data[22] << 8) | manufacturer_data[23]);
     return true;
 }
 
@@ -118,12 +118,15 @@ static int on_gap_event(ble_gap_event *event, void *)
 
 static void start_scan()
 {
-    ble_gap_disc_params params = {};
-    params.passive           = 1; // passive — no scan requests sent
-    params.itvl              = 0x0040; // 40ms interval
-    params.window            = 0x0040; // 40ms window → 100% duty cycle
-    params.filter_duplicates = 0; // must see repeats to refresh timestamps
-    ble_gap_disc(BLE_OWN_ADDR_PUBLIC, BLE_HS_FOREVER, &params, on_gap_event, nullptr);
+    ble_gap_disc_params discovery_params = {};
+    discovery_params.passive           = 1;      // passive — no scan requests sent
+    discovery_params.itvl              = 0x0080;  // 80ms interval
+    discovery_params.window            = 0x0030;  // 30ms window → ~37% duty cycle, leaves
+                                                   // airtime for WiFi (BLE/WiFi share one radio;
+                                                   // a 100% duty cycle scan starved WiFi enough
+                                                   // to break the HTTP POST to Relay under load)
+    discovery_params.filter_duplicates = 0; // must see repeats to refresh timestamps
+    ble_gap_disc(BLE_OWN_ADDR_PUBLIC, BLE_HS_FOREVER, &discovery_params, on_gap_event, nullptr);
     ESP_LOGI(TAG, "Passive iBeacon scan started");
 }
 
@@ -139,7 +142,7 @@ static void nimble_task(void *)
     nimble_port_freertos_deinit();
 }
 
-void ble_scanner_set_callback(BeaconEventCb cb) { g_callback = cb; }
+void ble_scanner_set_callback(BeaconEventCb callback) { g_callback = callback; }
 
 void start_ble_scanner()
 {

@@ -1,6 +1,15 @@
-# esp-32-template
+# GeoForce — Contact-Tracing Station Prototype
 
-ESP32 / ESP-IDF v6.x template. C++20, no exceptions, no RTTI.
+An ESP32-based BLE station that detects employee badges (iBeacon) nearby and
+reports arrival/departure events through a small pipeline (Relay → MQTT →
+Archive), plus a CoAP-controlled LED to demonstrate extending the station
+with new capabilities. Built with ESP-IDF v6.x, C++20, no exceptions, no RTTI.
+
+**See [ARCHITECTURE.md](ARCHITECTURE.md) for the full explanation** — the five
+components, the concepts (iBeacon, MQTT, CoAP), the end-to-end data flows, and
+how to run the whole demo.
+
+The rest of this file covers building and flashing the ESP32 firmware.
 
 ## Setup
 

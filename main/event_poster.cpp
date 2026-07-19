@@ -30,7 +30,7 @@ static void format_uuid(const uint8_t uuid[16], char *out, size_t out_len)
         uuid[12], uuid[13], uuid[14], uuid[15]);
 }
 
-static void do_post(BeaconEvent event, const BeaconId &id)
+static void send_event_to_relay(BeaconEvent event, const BeaconId &id)
 {
     char uuid_str[37];
     format_uuid(id.uuid, uuid_str, sizeof(uuid_str));
@@ -42,21 +42,21 @@ static void do_post(BeaconEvent event, const BeaconId &id)
         uuid_str, id.major, id.minor,
         g_station_id);
 
-    esp_http_client_config_t cfg = {};
-    cfg.url    = g_relay_url;
-    cfg.method = HTTP_METHOD_POST;
+    esp_http_client_config_t client_config = {};
+    client_config.url    = g_relay_url;
+    client_config.method = HTTP_METHOD_POST;
 
-    esp_http_client_handle_t client = esp_http_client_init(&cfg);
+    esp_http_client_handle_t client = esp_http_client_init(&client_config);
     esp_http_client_set_header(client, "Content-Type", "application/json");
     esp_http_client_set_post_field(client, body, (int)strlen(body));
 
-    esp_err_t err = esp_http_client_perform(client);
-    if (err == ESP_OK) {
+    esp_err_t result = esp_http_client_perform(client);
+    if (result == ESP_OK) {
         ESP_LOGI(TAG, "%s — badge %s:%u:%u",
             event == BeaconEvent::ARRIVAL ? "ARRIVAL" : "DEPARTURE",
             uuid_str, id.major, id.minor);
     } else {
-        ESP_LOGE(TAG, "HTTP POST failed: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "HTTP POST failed: %s", esp_err_to_name(result));
     }
     esp_http_client_cleanup(client);
 }
@@ -66,7 +66,7 @@ static void poster_task(void *)
     QueueItem item;
     while (true) {
         if (xQueueReceive(g_queue, &item, portMAX_DELAY))
-            do_post(item.event, item.id);
+            send_event_to_relay(item.event, item.id);
     }
 }
 

@@ -4,7 +4,7 @@ idf_component_register(
         "ble_scanner.cpp"
         "wifi_manager.cpp"
         "event_poster.cpp"
-        "led_server.cpp"
+        "coap_led_server.cpp"
     INCLUDE_DIRS "."
     REQUIRES
         nvs_flash
@@ -13,8 +13,8 @@ idf_component_register(
         esp_event
         esp_netif
         esp_http_client
-        esp_http_server
         driver
+        lwip
 )
 
 target_compile_features(${COMPONENT_LIB} PRIVATE cxx_std_20)
